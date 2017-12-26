@@ -9,6 +9,7 @@ import lib.helper
 
 parser = argparse.ArgumentParser()
 
+parser.add_argument('-c', '--cfg', default='config.json', metavar='<file>', help='Config File',required=False,)
 parser.add_argument('-d', '--test', action='store_true', help='Test Output', required=False)
 parser.add_argument('-v', '--verbose', action='store_true', help='Verbose Output', required=False)
 parser.add_argument('-t', '--dry-run', action='store_true', help='Dry Run', required=False)
@@ -27,12 +28,12 @@ config = {
 }
 
 try:
-  with open("config.json", 'r') as fh:
+  with open(options['cfg'], 'r') as fh:
     config = lib.helper.merge(config, json.load(fh))
 except IOError:
-  print('no config.json, use defaults')
+  print('no ' + options['cfg'] + ', use defaults')
 
-if options["test"]:
+if options['test']:
   from lib.nodeinfo import Nodeinfo
   from lib.statistics import Statistics
   from lib.neighbours import Neighbours
