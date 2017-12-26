@@ -39,6 +39,7 @@ class ResponddClient:
     sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_JOIN_GROUP, group + struct.pack('I', if_idx))
 
   def start(self):
+    self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE, bytes(self._config['bridge'], 'UTF-8'))
     self._sock.bind(('::', self._config['port']))
 
     lines = lib.helper.call(['batctl', '-m', self._config['batman'], 'if'])
