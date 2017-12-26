@@ -130,8 +130,8 @@ class Nodeinfo(Respondd):
       except:
         pass
 
-    if 'nodeinfo' in self._aliasOverlay:
-      return lib.helper.merge(ret, self._aliasOverlay['nodeinfo'])
+    if 'nodeinfo' in self._config:
+      return lib.helper.merge(ret, self._config['nodeinfo'])
     else:
       return ret
 

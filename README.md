@@ -31,13 +31,7 @@ Copy `config.json.example` to `config.json` and change it to match your server c
  * `fastd_socket` (string) (Optional: needed for uplink-flag)
  * `rate_limit` (integer) (Optional: limit incoming requests per minutes)
  * `rate_limit_burst` (integer) (Optional: allow burst requests)
-
-### alias.json
-Aliases to overwrite the returned server data.  
-Copy `alias.json.example` to `alias.json` and input e.g. owner information.  
-(`cp alias.json.example alias.json`)
-
-The JSON content matches one block of the nodes.json, which is outputted by e.g. the [HopGlass-Server](https://github.com/hopglass/hopglass-server).
+ * `nodeinfo` (array) (Optional: overwrite the returned server data. The JSON content matches one block of the nodes.json, which is outputted by e.g. the [HopGlass-Server](https://github.com/hopglass/hopglass-server))
 
 ### ext-respondd.service
 Register ext-respondd as a systemd service
