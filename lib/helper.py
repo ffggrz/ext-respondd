@@ -3,10 +3,13 @@
 import netifaces as netif
 import subprocess
 import sys
+import re
+
+batctl20193 = None
 
 def call(cmdnargs):
   try:
-    output = subprocess.check_output(cmdnargs, stderr=None)
+    output = subprocess.check_output(cmdnargs, stderr=subprocess.STDOUT)
     lines = output.splitlines()
     lines = [line.decode('utf-8') for line in lines]
   except subprocess.CalledProcessError as err:
@@ -15,6 +18,29 @@ def call(cmdnargs):
     print(str(sys.exc_info()[0]))
   else:
     return lines
+
+  return []
+
+def callBatctl(cmdnargs):
+  global batctl20193
+  if batctl20193 is None:
+    lines = call(['batctl', '-v'])
+    lineMatch = re.match(r'^batctl (\d+\.\d+) ', lines[0], re.I)
+    if lineMatch:
+      ver = lineMatch.group(1)
+      if float(ver) >= 2019.3:
+        batctl20193 = True
+      else:
+        batctl20193 = False
+    else:
+      print('cant determine batctl version')
+      batctl20193 = False
+
+
+  if batctl20193:
+    return call(['batctl', 'meshif'] + cmdnargs)
+  else:
+    return call(['batctl', '-m'] + cmdnargs)
 
   return []
 
