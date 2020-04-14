@@ -25,10 +25,11 @@ def callBatctl(cmdnargs):
   global batctl20193
   if batctl20193 is None:
     lines = call(['batctl', '-v'])
-    lineMatch = re.match(r'^batctl (\d+\.\d+) ', lines[0], re.I)
+    lineMatch = re.match(r'^batctl (\d+)\.(\d+) ', lines[0], re.I)
     if lineMatch:
-      ver = lineMatch.group(1)
-      if float(ver) >= 2019.3:
+      ver = int(lineMatch.group(1))
+      subver = int(lineMatch.group(2))
+      if ver > 2019 or (ver == 2019 and subver >= 3):
         batctl20193 = True
       else:
         batctl20193 = False
