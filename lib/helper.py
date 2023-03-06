@@ -25,7 +25,7 @@ def callBatctl(cmdnargs):
   global batctl20193
   if batctl20193 is None:
     lines = call(['batctl', '-v'])
-    lineMatch = re.match(r'^batctl (?:\w+-)?(\d+)\.(\d+) ', lines[0], re.I)
+    lineMatch = re.match(r'^batctl (?:\w+-)?(\d+)\.(\d+)[^ ]* ', lines[0], re.I)
     if lineMatch:
       ver = int(lineMatch.group(1))
       subver = int(lineMatch.group(2))
