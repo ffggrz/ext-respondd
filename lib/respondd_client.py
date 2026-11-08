@@ -6,7 +6,6 @@ import struct
 import json
 import zlib
 import time
-import re
 
 import lib.helper
 
@@ -30,38 +29,43 @@ class ResponddClient:
     self._neighbours = Neighbours(self._config)
     self._statistics = Statistics(self._config)
 
-    self._sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
-
   @staticmethod
   def joinMCAST(sock, addr, ifname):
     group = socket.inet_pton(socket.AF_INET6, addr)
     if_idx = socket.if_nametoindex(ifname)
     sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_JOIN_GROUP, group + struct.pack('I', if_idx))
 
+  def openSocket(self, interface, group):
+    sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE,
+                    interface.encode() + bytes(1))
+    sock.bind(('::', self._config['port']))
+    self.joinMCAST(sock, group, interface)
+    return sock
+
   def start(self):
-    self._sock.setsockopt(socket.SOL_SOCKET,socket.SO_BINDTODEVICE,bytes(self._config['bridge'].encode()))
-    self._sock.bind(('::', self._config['port']))
+    bridge = self._config['bridge']
+    sockets = [self.openSocket(bridge, self._config['addr'])]
 
     lines = lib.helper.callBatctl([self._config['batman'], 'if'])
     for line in lines:
-      lineMatch = re.match(r'^([^:]*)', line)
-      self.joinMCAST(self._sock, self._config['addr'], lineMatch.group(1))
-
-    self.joinMCAST(self._sock, self._config['addr'], self._config['bridge'])
+      interface, separator, _ = line.partition(':')
+      if separator and interface.strip():
+        sockets.append(self.openSocket(interface.strip(), 'ff02::2:1001'))
 
     while True:
-      msg, sourceAddress = self._sock.recvfrom(2048)
+      readable, _, _ = select.select(sockets, [], [])
+      for sock in readable:
+        msg, sourceAddress = sock.recvfrom(2048)
+        requests = msg.decode('UTF-8').split(' ')
 
-      msgSplit = str(msg, 'UTF-8').split(' ')
-
-      responseStruct = {}
-      if msgSplit[0] == 'GET': # multi_request
-        for request in msgSplit[1:]:
-          responseStruct[request] = self.buildStruct(request)
-        self.sendStruct(sourceAddress, responseStruct, True)
-      else: # single_request
-        responseStruct = self.buildStruct(msgSplit[0])
-        self.sendStruct(sourceAddress, responseStruct, False)
+        if requests[0] == 'GET':
+          response = {request: self.buildStruct(request)
+                      for request in requests[1:]}
+          self.sendStruct(sock, sourceAddress, response, True)
+        else:
+          response = self.buildStruct(requests[0])
+          self.sendStruct(sock, sourceAddress, response, False)
 
   def buildStruct(self, responseType):
     if self.__RateLimit is not None and not self.__RateLimit.limit():
@@ -81,7 +85,7 @@ class ResponddClient:
 
     return responseClass.getStruct()
 
-  def sendStruct(self, destAddress, responseStruct, withCompression):
+  def sendStruct(self, sock, destAddress, responseStruct, withCompression):
     if self._config['verbose'] or self._config['dry_run']:
       print('%14.3f %35s %5d: ' % (time.time(), destAddress[0], destAddress[1]), end='')
       print(json.dumps(responseStruct, sort_keys=True, indent=4))
@@ -95,5 +99,4 @@ class ResponddClient:
       # return compress(str.encode(json.dumps(ret)))[2:-4] # bug? (mesh-announce strip here)
 
     if not self._config['dry_run']:
-      self._sock.sendto(responseData, destAddress)
-
+      sock.sendto(responseData, destAddress)
